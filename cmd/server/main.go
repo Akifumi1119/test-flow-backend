@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 
@@ -50,5 +51,9 @@ func main() {
 	authorized.PUT("/comments/:comment_id", commentHandler.UpdateComment)
 	authorized.DELETE("/comments/:comment_id", commentHandler.DeleteComment)
 
-	router.Run(":8080")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	router.Run(":" + port)
 }
