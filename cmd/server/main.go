@@ -19,6 +19,7 @@ func main() {
 	}
 
 	router := gin.Default()
+	router.HandleMethodNotAllowed = false
 
 	router.Use(func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "https://akifumi1119.github.io")
