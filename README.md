@@ -24,6 +24,7 @@ backend/
 │   │   └── db.go          # DB接続・AutoMigrate
 │   ├── handler/
 │   │   ├── auth.go        # 認証ハンドラー
+│   │   ├── user.go        # ユーザーハンドラー
 │   │   ├── project.go     # プロジェクトハンドラー
 │   │   ├── task.go        # タスクハンドラー
 │   │   └── comment.go     # コメントハンドラー
@@ -57,6 +58,7 @@ backend/
 | `DB_PASSWORD` | ``                | DBパスワード          |
 | `DB_NAME`     | `task_management` | DB名                  |
 | `JWT_SECRET`  | `secret`          | JWTの署名シークレット |
+| `PORT`        | `8080`            | サーバーポート        |
 
 > 本番環境では `JWT_SECRET` を必ず強力なランダム文字列に変更してください。
 
@@ -86,6 +88,8 @@ go run ./cmd/server/main.go
 | メソッド | パス                          | 説明                     |
 | -------- | ----------------------------- | ------------------------ |
 | POST     | `/api/logout`                 | ログアウト               |
+| GET      | `/api/users/:id`              | ユーザー取得             |
+| PUT      | `/api/users/:id`              | ユーザー更新             |
 | GET      | `/api/projects/:id`           | プロジェクト取得         |
 | POST     | `/api/projects`               | プロジェクト作成         |
 | PUT      | `/api/projects`               | プロジェクト更新         |
@@ -100,6 +104,10 @@ go run ./cmd/server/main.go
 | POST     | `/api/comments/:task_id`      | コメント作成             |
 | PUT      | `/api/comments/:comment_id`   | コメント更新             |
 | DELETE   | `/api/comments/:comment_id`   | コメント削除             |
+
+## CORS
+
+`https://akifumi1119.github.io` からのリクエストを許可しています。
 
 ## 認証フロー
 
