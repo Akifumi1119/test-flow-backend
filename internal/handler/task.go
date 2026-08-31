@@ -76,9 +76,9 @@ func (h *TaskHandler) GetTasks(c *gin.Context) {
 		query = query.Where("created_by = ?", *req.CreatedBy)
 	}
 
-	// ③ 構築したクエリでタスク一覧を取得する。
+	// ③ 構築したクエリでタスク一覧を取得する。task_id の昇順で返す。
 	var tasks []model.Task
-	if err := query.Find(&tasks).Error; err != nil {
+	if err := query.Order("task_id ASC").Find(&tasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "システムエラーが発生しました。"})
 		return
 	}
