@@ -3,12 +3,15 @@ package db
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"task-management/backend/internal/model"
 )
+
+const DeletedUserEmail = "system-deleted@local"
 
 func New() (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
@@ -36,7 +39,40 @@ func New() (*gorm.DB, error) {
 		return nil, err
 	}
 
+	if err := ensureDeletedUser(db); err != nil {
+		return nil, err
+	}
+
 	return db, nil
+}
+
+// EnsureDeletedUserID は「削除済みユーザー」センチネルのIDを返す。
+func EnsureDeletedUserID(db *gorm.DB) (uint, error) {
+	var u model.User
+	err := db.Where("email = ?", DeletedUserEmail).First(&u).Error
+	if err != nil {
+		return 0, err
+	}
+	return u.UserID, nil
+}
+
+func ensureDeletedUser(db *gorm.DB) error {
+	var u model.User
+	err := db.Where("email = ?", DeletedUserEmail).First(&u).Error
+	if err == nil {
+		return nil
+	}
+	if err != gorm.ErrRecordNotFound {
+		return err
+	}
+	now := time.Now()
+	return db.Create(&model.User{
+		Name:      "削除済みユーザー",
+		Email:     DeletedUserEmail,
+		Password:  "-",
+		CreatedAt: now,
+		UpdatedAt: now,
+	}).Error
 }
 
 func getenv(key, fallback string) string {

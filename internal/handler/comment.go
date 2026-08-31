@@ -11,6 +11,8 @@ import (
 	"task-management/backend/internal/model"
 )
 
+// CommentHandler はコメント関連のHTTPハンドラーをまとめた構造体。
+// コメントの作成・更新・削除の3つの処理を提供する。
 type CommentHandler struct {
 	db *gorm.DB
 }
@@ -19,28 +21,44 @@ func NewCommentHandler(db *gorm.DB) *CommentHandler {
 	return &CommentHandler{db: db}
 }
 
+// createCommentRequest はコメント作成APIのリクエストボディ。
+// user_id・task_id・comment はすべて必須。
 type createCommentRequest struct {
 	UserID  uint   `json:"user_id" binding:"required"`
 	TaskID  uint   `json:"task_id" binding:"required"`
 	Comment string `json:"comment" binding:"required"`
 }
 
+// createCommentResponse はコメント作成APIのレスポンス。
+// 作成したコメントの情報に加え、紐づくタスクのIDとタイトルを含む。
 type createCommentResponse struct {
 	TaskID    uint      `json:"task_id"`
-	Title     string    `json:"title"`
+	Title     string    `json:"title"`     // コメントが紐づくタスクのタイトル
 	CommentID uint      `json:"comment_id"`
 	Comment   string    `json:"comment"`
-	CreatedBy string    `json:"created_by"`
+	CreatedBy string    `json:"created_by"` // 投稿者の名前（IDではなく名前文字列）
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// CreateComment は指定したタスクに対してコメントを投稿する。
+// 投稿者ユーザーと対象タスクの両方が存在することを確認してからコメントを保存する。
+//
+// 処理フロー:
+//  1. リクエストボディのバリデーション
+//  2. 投稿者ユーザーの存在確認
+//  3. 対象タスクの存在確認
+//  4. コメントをDBに保存
+//  5. 作成したコメントの情報をレスポンスとして返す
 func (h *CommentHandler) CreateComment(c *gin.Context) {
+	// ① リクエストボディを createCommentRequest 構造体にバインドしてバリデーションを実行する。
 	var req createCommentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "システムエラーが発生しました。"})
 		return
 	}
 
+	// ② 投稿者ユーザーがDBに存在するか確認する。
+	//    存在しない場合はトークン切れとして 401 を返す。
 	var user model.User
 	if err := h.db.First(&user, req.UserID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -51,6 +69,8 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 		return
 	}
 
+	// ③ コメントを投稿するタスクがDBに存在するか確認する。
+	//    存在しない場合は 400 を返す。
 	var task model.Task
 	if err := h.db.First(&task, req.TaskID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -61,6 +81,8 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 		return
 	}
 
+	// ④ コメントをDBに保存する。
+	//    CreatedAt・UpdatedAt は現在時刻をセットする。
 	comment := model.Comment{
 		TaskID:    req.TaskID,
 		Content:   req.Comment,
@@ -73,6 +95,8 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 		return
 	}
 
+	// ⑤ 作成したコメントの情報をレスポンスとして返す。
+	//    タスクのタイトルを含めることで、フロントエンドが画面を再取得せずに表示を更新できる。
 	c.JSON(http.StatusOK, createCommentResponse{
 		TaskID:    task.TaskID,
 		Title:     task.Title,
@@ -83,25 +107,39 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 	})
 }
 
+// updateCommentRequest はコメント更新APIのリクエストボディ。
+// user_id・comment_id・comment はすべて必須。
 type updateCommentRequest struct {
 	UserID    uint   `json:"user_id" binding:"required"`
 	CommentID uint   `json:"comment_id" binding:"required"`
 	Comment   string `json:"comment" binding:"required"`
 }
 
+// updateCommentResponse はコメント更新APIのレスポンス。
 type updateCommentResponse struct {
 	CommentID uint      `json:"comment_id"`
 	Comment   string    `json:"comment"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// UpdateComment は既存コメントの内容を更新する。
+// 操作ユーザーと更新対象コメントの両方が存在することを確認してから更新する。
+//
+// 処理フロー:
+//  1. リクエストボディのバリデーション
+//  2. 操作ユーザーの存在確認
+//  3. 更新対象コメントの存在確認
+//  4. コメント内容と更新日時を変更してDBに保存
+//  5. 更新したコメントの情報をレスポンスとして返す
 func (h *CommentHandler) UpdateComment(c *gin.Context) {
+	// ① リクエストボディを updateCommentRequest 構造体にバインドしてバリデーションを実行する。
 	var req updateCommentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "システムエラーが発生しました。"})
 		return
 	}
 
+	// ② 操作ユーザーがDBに存在するか確認する。
 	var user model.User
 	if err := h.db.First(&user, req.UserID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -112,6 +150,7 @@ func (h *CommentHandler) UpdateComment(c *gin.Context) {
 		return
 	}
 
+	// ③ 更新対象コメントがDBに存在するか確認する。
 	var comment model.Comment
 	if err := h.db.First(&comment, req.CommentID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -122,6 +161,8 @@ func (h *CommentHandler) UpdateComment(c *gin.Context) {
 		return
 	}
 
+	// ④ コメント内容と更新日時を変更してDBに保存する。
+	//    GORM の Save は主キーが存在する場合は UPDATE、存在しない場合は INSERT を実行する。
 	comment.Content = req.Comment
 	comment.UpdatedAt = time.Now()
 
@@ -130,6 +171,7 @@ func (h *CommentHandler) UpdateComment(c *gin.Context) {
 		return
 	}
 
+	// ⑤ 更新後のコメント情報をレスポンスとして返す。
 	c.JSON(http.StatusOK, updateCommentResponse{
 		CommentID: comment.CommentID,
 		Comment:   comment.Content,
@@ -137,18 +179,31 @@ func (h *CommentHandler) UpdateComment(c *gin.Context) {
 	})
 }
 
+// deleteCommentRequest はコメント削除APIのリクエストボディ。
+// user_id・comment_id はともに必須。
 type deleteCommentRequest struct {
 	UserID    uint `json:"user_id" binding:"required"`
 	CommentID uint `json:"comment_id" binding:"required"`
 }
 
+// DeleteComment は指定したコメントを物理削除する。
+// 操作ユーザーと削除対象コメントの両方が存在することを確認してから削除する。
+//
+// 処理フロー:
+//  1. リクエストボディのバリデーション
+//  2. 操作ユーザーの存在確認
+//  3. 削除対象コメントの存在確認
+//  4. コメントをDBから物理削除
+//  5. 削除したコメントIDをレスポンスとして返す
 func (h *CommentHandler) DeleteComment(c *gin.Context) {
+	// ① リクエストボディを deleteCommentRequest 構造体にバインドしてバリデーションを実行する。
 	var req deleteCommentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "システムエラーが発生しました。"})
 		return
 	}
 
+	// ② 操作ユーザーがDBに存在するか確認する。
 	var user model.User
 	if err := h.db.First(&user, req.UserID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -159,6 +214,7 @@ func (h *CommentHandler) DeleteComment(c *gin.Context) {
 		return
 	}
 
+	// ③ 削除対象コメントがDBに存在するか確認する。
 	var comment model.Comment
 	if err := h.db.First(&comment, req.CommentID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -169,10 +225,13 @@ func (h *CommentHandler) DeleteComment(c *gin.Context) {
 		return
 	}
 
+	// ④ コメントをDBから物理削除する。
 	if err := h.db.Delete(&comment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "システムエラーが発生しました。"})
 		return
 	}
 
+	// ⑤ 削除したコメントIDをレスポンスとして返す。
+	//    フロントエンドはこのIDを使って画面上のコメントリストから該当要素を削除する。
 	c.JSON(http.StatusOK, gin.H{"comment_id": req.CommentID})
 }

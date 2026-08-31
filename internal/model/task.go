@@ -8,7 +8,7 @@ type Task struct {
 	Title     string    `gorm:"not null"`
 	Content   string    `gorm:"column:content"`
 	Status    int       `gorm:"not null"`
-	UserID    uint      `gorm:"column:user_id"`
+	UserID    *uint     `gorm:"column:user_id"`
 	CreatedBy uint      `gorm:"not null;column:created_by"`
 	CreatedAt time.Time `gorm:"not null"`
 	UpdatedAt time.Time `gorm:"not null"`
