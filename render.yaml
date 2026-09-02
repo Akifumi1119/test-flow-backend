@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: task-management-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: task-management-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: task-management-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: task-management-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: task-management-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: task-management-db
+          property: database
+      - key: JWT_SECRET
+        generateValue: true
+
+databases:
+  - name: task-management-db
+    plan: free
