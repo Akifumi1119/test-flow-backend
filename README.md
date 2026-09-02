@@ -87,34 +87,34 @@ go run ./cmd/server/main.go
 
 クエリパラメータ: `email`（必須）、`project_id`（必須）
 
-| `exists` | 意味 | 返却フィールド |
-| -------- | ---- | -------------- |
-| `1` | ユーザーが存在し、対象プロジェクトに未参加（招待可能） | `exists`, `name` |
-| `2` | そのメールアドレスのユーザーが存在しない | `exists` |
-| `3` | ユーザーが存在し、対象プロジェクトに参加済み | `exists` |
+| `exists` | 意味                                                   | 返却フィールド   |
+| -------- | ------------------------------------------------------ | ---------------- |
+| `1`      | ユーザーが存在し、対象プロジェクトに未参加（招待可能） | `exists`, `name` |
+| `2`      | そのメールアドレスのユーザーが存在しない               | `exists`         |
+| `3`      | ユーザーが存在し、対象プロジェクトに参加済み           | `exists`         |
 
 ### 認証必要 (`Authorization: Bearer <token>`)
 
-| メソッド | パス                          | 説明                                                              |
-| -------- | ----------------------------- | ----------------------------------------------------------------- |
-| POST     | `/api/logout`                 | ログアウト                                                        |
-| GET      | `/api/users/:id`              | ユーザー取得                                                      |
-| PUT      | `/api/users/:id`              | ユーザー更新                                                      |
-| DELETE   | `/api/users/:id`              | ユーザー削除（自分自身のみ）                                      |
-| GET      | `/api/projects/:id`           | プロジェクト取得                                                  |
-| POST     | `/api/projects`               | プロジェクト作成                                                  |
-| PUT      | `/api/projects`               | プロジェクト更新                                                  |
-| DELETE   | `/api/projects/:id`           | プロジェクト削除                                                  |
-| GET      | `/api/projects/:id/members`   | プロジェクトメンバー一覧                                          |
-| GET      | `/api/projects/:id/authority` | 権限確認                                                          |
+| メソッド | パス                          | 説明                                                             |
+| -------- | ----------------------------- | ---------------------------------------------------------------- |
+| POST     | `/api/logout`                 | ログアウト                                                       |
+| GET      | `/api/users/:id`              | ユーザー取得                                                     |
+| PUT      | `/api/users/:id`              | ユーザー更新                                                     |
+| DELETE   | `/api/users/:id`              | ユーザー削除（自分自身のみ）                                     |
+| GET      | `/api/projects/:id`           | プロジェクト取得                                                 |
+| POST     | `/api/projects`               | プロジェクト作成                                                 |
+| PUT      | `/api/projects`               | プロジェクト更新                                                 |
+| DELETE   | `/api/projects/:id`           | プロジェクト削除                                                 |
+| GET      | `/api/projects/:id/members`   | プロジェクトメンバー一覧                                         |
+| GET      | `/api/projects/:id/authority` | 権限確認                                                         |
 | GET      | `/api/tasks`                  | タスク一覧（`status` / `user_id` / `created_by` で絞り込み可能） |
-| GET      | `/api/tasks/:task_id`         | タスク取得                                                        |
-| POST     | `/api/tasks`                  | タスク作成                                                        |
-| PUT      | `/api/tasks/:task_id`         | タスク更新                                                        |
-| DELETE   | `/api/tasks/:task_id`         | タスク削除                                                        |
-| POST     | `/api/comments/:task_id`      | コメント作成                                                      |
-| PUT      | `/api/comments/:comment_id`   | コメント更新                                                      |
-| DELETE   | `/api/comments/:comment_id`   | コメント削除                                                      |
+| GET      | `/api/tasks/:task_id`         | タスク取得                                                       |
+| POST     | `/api/tasks`                  | タスク作成                                                       |
+| PUT      | `/api/tasks/:task_id`         | タスク更新                                                       |
+| DELETE   | `/api/tasks/:task_id`         | タスク削除                                                       |
+| POST     | `/api/comments/:task_id`      | コメント作成                                                     |
+| PUT      | `/api/comments/:comment_id`   | コメント更新                                                     |
+| DELETE   | `/api/comments/:comment_id`   | コメント削除                                                     |
 
 ## CORS
 

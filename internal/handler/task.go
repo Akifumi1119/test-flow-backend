@@ -36,6 +36,7 @@ type taskListItem struct {
 	TaskID    uint      `json:"task_id"`
 	Title     string    `json:"title"`
 	Status    int       `json:"status"`
+	Priority  *int      `json:"priority"` // タスク優先度
 	CreatedBy string    `json:"created_by"` // 作成者の名前（IDではなく名前文字列）
 	UserName  string    `json:"user_name"`  // 担当者の名前。未割り当ての場合は空文字
 	CreatedAt time.Time `json:"created_at"`
@@ -130,6 +131,7 @@ func (h *TaskHandler) GetTasks(c *gin.Context) {
 			TaskID:    t.TaskID,
 			Title:     t.Title,
 			Status:    t.Status,
+			Priority:  t.Priority,
 			CreatedBy: userMap[t.CreatedBy],
 			UserName:  assigneeName,
 			CreatedAt: t.CreatedAt,
@@ -154,6 +156,7 @@ type getTaskResponse struct {
 	TaskID      uint          `json:"task_id"`
 	Title       string        `json:"title"`
 	Status      int           `json:"status"`
+	Priority    *int          `json:"priority"` // タスク優先度
 	Content     string        `json:"content"`
 	Comments    []commentItem `json:"comments"`
 	CreatedBy   string        `json:"created_by"`   // 作成者の名前
@@ -239,6 +242,7 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 		TaskID:      task.TaskID,
 		Title:       task.Title,
 		Status:      task.Status,
+		Priority:    task.Priority,
 		Content:     task.Content,
 		Comments:    commentItems,
 		CreatedBy:   userMap[task.CreatedBy],
@@ -256,6 +260,7 @@ type updateTaskRequest struct {
 	Title          string `json:"title" binding:"required"`
 	Content        string `json:"content"`
 	Status         int    `json:"status" binding:"required"`
+	Priority       string `json:"priority"` // "urgent"=1, "high"=2, "medium"=3, "low"=4, ""=null
 	AssigneeUserID uint   `json:"assignee_user_id"` // 0 の場合は未割り当て
 }
 
@@ -265,6 +270,7 @@ type updateTaskResponse struct {
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
 	Status    int       `json:"status"`
+	Priority  *int      `json:"priority"` // タスク優先度
 	CreatedBy string    `json:"created_by"` // 作成者の名前
 	UserName  string    `json:"user_name"`  // 担当者の名前。未割り当ての場合は空文字
 	CreatedAt time.Time `json:"created_at"`
@@ -314,9 +320,23 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 	// ④ タスクの各フィールドをリクエストの値で更新する。
 	//    AssigneeUserID が 0 の場合は担当者なし（user_id = null）として扱う。
 	//    0 かどうかで判定しているのは、uint のゼロ値が「未指定」を意味するため。
+	priorityMap := map[string]*int{
+		"urgent": intPtr(1),
+		"high":   intPtr(2),
+		"medium": intPtr(3),
+		"low":    intPtr(4),
+		"":       nil,
+	}
+	priority, ok := priorityMap[req.Priority]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "priorityの値が不正です。"})
+		return
+	}
+
 	task.Title = req.Title
 	task.Content = req.Content
 	task.Status = req.Status
+	task.Priority = priority
 	task.UpdatedAt = time.Now()
 	if req.AssigneeUserID != 0 {
 		task.UserID = &req.AssigneeUserID
@@ -362,6 +382,7 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 		Title:     task.Title,
 		Content:   task.Content,
 		Status:    task.Status,
+		Priority:  task.Priority,
 		CreatedBy: userMap[task.CreatedBy],
 		UserName:  assigneeName,
 		CreatedAt: task.CreatedAt,
@@ -439,6 +460,7 @@ type createTaskRequest struct {
 	ProjectID uint   `json:"project_id" binding:"required"`
 	Title     string `json:"title" binding:"required"`
 	Content   string `json:"content"`
+	Priority  string `json:"priority"` // "urgent"=1, "high"=2, "medium"=3, "low"=4, ""=null
 	UserName  uint   `json:"user_name"` // 担当者のユーザーID。0 の場合は未割り当て
 }
 
@@ -447,6 +469,7 @@ type createTaskResponse struct {
 	TaskID    uint      `json:"task_id"`
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
+	Priority  *int      `json:"priority"` // タスク優先度
 	CreatedBy string    `json:"created_by"` // 作成者の名前
 	UserName  string    `json:"user_name"`  // 担当者の名前。未割り当ての場合は空文字
 	CreatedAt time.Time `json:"created_at"`
@@ -481,6 +504,21 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		return
 	}
 
+	// ②-b priority 文字列を数値に変換する。
+	//    "urgent"=1, "high"=2, "medium"=3, "low"=4, ""=null。それ以外は 400 を返す。
+	priorityMap := map[string]*int{
+		"urgent": intPtr(1),
+		"high":   intPtr(2),
+		"medium": intPtr(3),
+		"low":    intPtr(4),
+		"":       nil,
+	}
+	priority, ok := priorityMap[req.Priority]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "priorityの値が不正です。"})
+		return
+	}
+
 	// ③ 担当者（UserName フィールドで受け取るユーザーID）が指定されている場合は存在確認を行う。
 	//    UserName が 0 の場合は担当者なしとして扱い、この処理をスキップする。
 	var assigneeID *uint
@@ -505,6 +543,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		ProjectID: req.ProjectID,
 		Title:     req.Title,
 		Content:   req.Content,
+		Priority:  priority,
 		UserID:    assigneeID,
 		CreatedBy: req.CreatedBy,
 		Status:    1,
@@ -521,8 +560,11 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		TaskID:    task.TaskID,
 		Title:     task.Title,
 		Content:   task.Content,
+		Priority:  task.Priority,
 		CreatedBy: creator.Name,
 		UserName:  assigneeName,
 		CreatedAt: task.CreatedAt,
 	})
 }
+
+func intPtr(v int) *int { return &v }
