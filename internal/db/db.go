@@ -15,7 +15,7 @@ const DeletedUserEmail = "system-deleted@local"
 
 func New() (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=require",
 		getenv("DB_HOST", "localhost"),
 		getenv("DB_USER", "postgres"),
 		getenv("DB_PASSWORD", ""),
