@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
 	internaldb "task-management/backend/internal/db"
@@ -331,4 +332,64 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "ユーザーを削除しました。"})
+}
+
+type changePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required"`
+}
+
+// ChangePassword は現在のパスワードを確認したうえで新しいパスワードに変更する。
+// JWTのuserIDとパスパラメータが一致する場合のみ許可する。
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	userIDParam := c.Param("id")
+	targetID, err := strconv.ParseUint(userIDParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "不正なユーザーIDです。"})
+		return
+	}
+
+	callerID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "認証に失敗しました。"})
+		return
+	}
+	if uint(targetID) != callerID.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"message": "他のユーザーのパスワードは変更できません。"})
+		return
+	}
+
+	var req changePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "入力内容が正しくありません。"})
+		return
+	}
+
+	var user model.User
+	if err := h.db.First(&user, targetID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "ユーザーが見つかりません。"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "システムエラーが発生しました。"})
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.CurrentPassword)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "現在のパスワードが正しくありません。"})
+		return
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "システムエラーが発生しました。"})
+		return
+	}
+
+	if err := h.db.Model(&user).Update("password", string(hashed)).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "システムエラーが発生しました。"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "パスワードを変更しました。"})
 }

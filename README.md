@@ -101,6 +101,7 @@ go run ./cmd/server/main.go
 | GET      | `/api/users/:id`              | ユーザー取得                                                     |
 | PUT      | `/api/users/:id`              | ユーザー更新                                                     |
 | DELETE   | `/api/users/:id`              | ユーザー削除（自分自身のみ）                                     |
+| PUT      | `/api/users/:id/password`     | パスワード変更（自分自身のみ）                                   |
 | GET      | `/api/projects/:id`           | プロジェクト取得                                                 |
 | POST     | `/api/projects`               | プロジェクト作成                                                 |
 | PUT      | `/api/projects`               | プロジェクト更新                                                 |

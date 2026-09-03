@@ -52,6 +52,7 @@ func main() {
 	authorized.GET("/users/:id", userHandler.GetUser)
 	authorized.PUT("/users/:id", userHandler.UpdateUser)
 	authorized.DELETE("/users/:id", userHandler.DeleteUser)
+	authorized.PUT("/users/:id/password", userHandler.ChangePassword)
 	authorized.GET("/projects/:id", projectHandler.GetProjects)
 	authorized.POST("/projects", projectHandler.CreateProject)
 	authorized.GET("/projects/:id/members", projectHandler.GetProjectMembers)
