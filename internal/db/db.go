@@ -21,7 +21,7 @@ func New() (*gorm.DB, error) {
 		getenv("DB_PASSWORD", ""),
 		getenv("DB_NAME", "task_management"),
 		getenv("DB_PORT", "5432"),
-		getenv("DB_SSLMODE", "disable"),
+		getenv("DB_SSLMODE", "require"),
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})

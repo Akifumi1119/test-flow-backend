@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 
 	"task-management/backend/internal/db"
 	"task-management/backend/internal/handler"
@@ -13,6 +14,8 @@ import (
 )
 
 func main() {
+	_ = godotenv.Load()
+
 	database, err := db.New()
 	if err != nil {
 		log.Fatalf("DB接続に失敗しました: %v", err)
