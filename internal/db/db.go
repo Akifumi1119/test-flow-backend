@@ -36,6 +36,9 @@ func New() (*gorm.DB, error) {
 		&model.Comment{},
 		&model.ProjectMember{},
 		&model.RefreshToken{},
+		&model.EmailVerification{},
+		&model.TaskImage{},
+		&model.CommentImage{},
 	); err != nil {
 		return nil, err
 	}

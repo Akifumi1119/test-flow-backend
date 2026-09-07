@@ -9,8 +9,10 @@ import (
 	"github.com/joho/godotenv"
 
 	"task-management/backend/internal/db"
+	"task-management/backend/internal/email"
 	"task-management/backend/internal/handler"
 	"task-management/backend/internal/middleware"
+	"task-management/backend/internal/storage"
 )
 
 func main() {
@@ -39,16 +41,32 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"message": "API is running"})
 	})
 
-	authHandler := handler.NewAuthHandler(database)
+	emailClient := email.NewClient(
+		os.Getenv("RESEND_API_KEY"),
+		os.Getenv("RESEND_FROM"),
+	)
+
+	var storageClient *storage.Client
+	if cloudURL := os.Getenv("CLOUDINARY_URL"); cloudURL != "" {
+		var err error
+		storageClient, err = storage.NewClient(cloudURL)
+		if err != nil {
+			log.Printf("Cloudinary初期化に失敗しました（画像アップロード無効）: %v", err)
+		}
+	}
+
+	authHandler := handler.NewAuthHandler(database, emailClient)
 	projectHandler := handler.NewProjectHandler(database)
-	taskHandler := handler.NewTaskHandler(database)
-	commentHandler := handler.NewCommentHandler(database)
+	taskHandler := handler.NewTaskHandler(database, storageClient)
+	commentHandler := handler.NewCommentHandler(database, storageClient)
 	userHandler := handler.NewUserHandler(database)
 
 	api := router.Group("/api")
 	api.POST("/login", authHandler.Login)
 	api.POST("/users", authHandler.Register)
 	api.GET("/users/check", authHandler.CheckUser)
+	api.POST("/verify-email", authHandler.VerifyEmail)
+	api.POST("/resend-verification", authHandler.ResendVerification)
 
 	authorized := api.Group("", middleware.JWTAuth())
 	authorized.POST("/logout", authHandler.Logout)
