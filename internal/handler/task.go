@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"time"
 
@@ -556,25 +555,20 @@ func (h *TaskHandler) uploadImages(c *gin.Context, field string, save func(url, 
 		return urls
 	}
 	files := form.File[field]
-	log.Printf("[uploadImages] field=%s, files=%d", field, len(files))
 	for _, fh := range files {
 		f, err := fh.Open()
 		if err != nil {
-			log.Printf("[uploadImages] open error: %v", err)
 			continue
 		}
 		result, err := h.storage.Upload(f, "task-management")
 		f.Close()
 		if err != nil {
-			log.Printf("[uploadImages] cloudinary upload error: %v", err)
 			continue
 		}
-		log.Printf("[uploadImages] upload result: URL=%q, PublicID=%q", result.URL, result.PublicID)
 		if result.URL == "" {
 			continue
 		}
 		if err := save(result.URL, result.PublicID); err != nil {
-			log.Printf("[uploadImages] db save error: %v", err)
 			continue
 		}
 		urls = append(urls, result.URL)
